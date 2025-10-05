@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Atomic Explorer</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tab {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab.active {
+            background: rgba(255,255,255,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .content {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Atom Visualizer */
+        .atom-container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .atom-display {
+            flex: 1;
+            min-width: 300px;
+            height: 400px;
+            position: relative;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            margin: 0 auto;
+        }
+
+        .nucleus {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #ff6b6b, #ee5a52);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 0 20px rgba(255,107,107,0.5);
+        }
+
+        .electron-orbit {
+            position: absolute;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .orbit-1 { width: 120px; height: 120px; }
+        .orbit-2 { width: 200px; height: 200px; }
+        .orbit-3 { width: 280px; height: 280px; }
+
+        .electron {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #4ecdc4;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(78,205,196,0.8);
+        }
+
+        .electron-1 { animation: orbit1 3s linear infinite; }
+        .electron-2 { animation: orbit2 4s linear infinite; }
+        .electron-3 { animation: orbit3 5s linear infinite; }
+
+        @keyframes orbit1 {
+            from { transform: rotate(0deg) translateX(60px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(60px) rotate(-360deg); }
+        }
+
+        @keyframes orbit2 {
+            from { transform: rotate(0deg) translateX(100px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+        }
+
+        @keyframes orbit3 {
+            from { transform: rotate(0deg) translateX(140px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(140px) rotate(-360deg); }
+        }
+
+        .atom-controls {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .control-group h3 {
+            margin: 0 0 15px 0;
+            color: #4ecdc4;
+        }
+
+        .particle-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .particle-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .particle-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .particle-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        /* Periodic Table */
+        .periodic-table {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            gap: 2px;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .element {
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .element:hover {
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.05);
+        }
+
+        .element-symbol {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .element-number {
+            font-size: 10px;
+            opacity: 0.8;
+        }
+
+        .element-info {
+            margin-top: 20px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .element-info.show {
+            display: block;
+        }
+
+        /* Molecular Builder */
+        .molecule-builder {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .molecule-canvas {
+            flex: 1;
+            min-width: 400px;
+            height: 400px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            position: relative;
+            border: 2px dashed rgba(255,255,255,0.3);
+        }
+
+        .molecule-tools {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .atom-palette {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .atom-tool {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .atom-tool:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .atom-tool.selected {
+            background: rgba(78,205,196,0.5);
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255,255,255,0.3);
+            transform: translateX(-50%);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 40px;
+            width: 45%;
+        }
+
+        .timeline-item:nth-child(odd) {
+            left: 0;
+            text-align: right;
+            padding-right: 30px;
+        }
+
+        .timeline-item:nth-child(even) {
+            left: 55%;
+            text-align: left;
+            padding-left: 30px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: #4ecdc4;
+            border-radius: 50%;
+            top: 0;
+        }
+
+        .timeline-item:nth-child(odd)::before {
+            right: -7px;
+        }
+
+        .timeline-item:nth-child(even)::before {
+            left: -7px;
+        }
+
+        .timeline-content {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .timeline-year {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4ecdc4;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .atom-container, .molecule-builder {
+                flex-direction: column;
+            }
+            
+            .timeline::before {
+                left: 20px;
+            }
+            
+            .timeline-item {
+                width: calc(100% - 40px);
+                left: 40px !important;
+                text-align: left !important;
+                padding-left: 20px !important;
+                padding-right: 0 !important;
+            }
+            
+            .timeline-item::before {
+                left: -27px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚛️ Interactive Atomic Explorer</h1>
+            <p>Discover the fascinating world of atoms, elements, and molecules</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showSection('visualizer')">Atom Visualizer</button>
+            <button class="tab" onclick="showSection('builder')">Atom Builder</button>
+            <button class="tab" onclick="showSection('periodic')">Periodic Table</button>
+            <button class="tab" onclick="showSection('molecules')">Molecule Builder</button>
+            <button class="tab" onclick="showSection('timeline')">History Timeline</button>
+        </div>
+
+        <div class="content">
+            <!-- Atom Visualizer -->
+            <div id="visualizer" class="section active">
+                <div class="atom-container">
+                    <div class="atom-display" id="atomDisplay">
+                        <div class="electron-orbit orbit-1"></div>
+                        <div class="electron-orbit orbit-2"></div>
+                        <div class="electron-orbit orbit-3"></div>
+                        <div class="nucleus" id="nucleus">H</div>
+                        <div class="electron electron-1"></div>
+                    </div>
+                    <div class="atom-controls">
+                        <div class="control-group">
+                            <h3>Current Element: <span id="currentElement">Hydrogen</span></h3>
+                            <p id="elementDescription">The lightest and most abundant element in the universe.</p>
+                        </div>
+                        <div class="control-group">
+                            <h3>Quick Select</h3>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                <button class="particle-btn" onclick="setElement('H', 1, 1, 0)" style="background: #ff6b6b;">H</button>
+                                <button class="particle-btn" onclick="setElement('He', 2, 2, 2)" style="background: #4ecdc4;">He</button>
+                                <button class="particle-btn" onclick="setElement('Li', 3, 3, 4)" style="background: #45b7d1;">Li</button>
+                                <button class="particle-btn" onclick="setElement('C', 6, 6, 6)" style="background: #96ceb4;">C</button>
+                                <button class="particle-btn" onclick="setElement('N', 7, 7, 7)" style="background: #feca57;">N</button>
+                                <button class="particle-btn" onclick="setElement('O', 8, 8, 8)" style="background: #ff9ff3;">O</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Atom Builder -->
+            <div id="builder" class="section">
+                <div class="atom-container">
+                    <div class="atom-display" id="builderDisplay">
+                        <div class="electron-orbit orbit-1"></div>
+                        <div class="electron-orbit orbit-2"></div>
+                        <div class="electron-orbit orbit-3"></div>
+                        <div class="nucleus" id="builderNucleus">+</div>
+                    </div>
+                    <div class="atom-controls">
+                        <div class="control-group">
+                            <h3>Build Your Atom</h3>
+                            <div class="particle-control">
+                                <span>Protons: <span id="protonCount">1</span></span>
+                                <div class="particle-buttons">
+                                    <button class="particle-btn" onclick="changeParticles('protons', -1)">-</button>
+                                    <button class="particle-btn" onclick="changeParticles('protons', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="particle-control">
+                                <span>Neutrons: <span id="neutronCount">0</span></span>
+                                <div class="particle-buttons">
+                                    <button class="particle-btn" onclick="changeParticles('neutrons', -1)">-</button>
+                                    <button class="particle-btn" onclick="changeParticles('neutrons', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="particle-control">
+                                <span>Electrons: <span id="electronCount">1</span></span>
+                                <div class="particle-buttons">
+                                    <button class="particle-btn" onclick="changeParticles('electrons', -1)">-</button>
+                                    <button class="particle-btn" onclick="changeParticles('electrons', 1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <h3>Atom Properties</h3>
+                            <p><strong>Element:</strong> <span id="builtElement">Hydrogen</span></p>
+                            <p><strong>Charge:</strong> <span id="atomCharge">Neutral</span></p>
+                            <p><strong>Mass Number:</strong> <span id="massNumber">1</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Periodic Table -->
+            <div id="periodic" class="section">
+                <h2 style="text-align: center; margin-bottom: 20px;">Interactive Periodic Table</h2>
+                <div class="periodic-table" id="periodicTable"></div>
+                <div class="element-info" id="elementInfo">
+                    <h3 id="infoName"></h3>
+                    <p><strong>Symbol:</strong> <span id="infoSymbol"></span></p>
+                    <p><strong>Atomic Number:</strong> <span id="infoNumber"></span></p>
+                    <p><strong>Atomic Mass:</strong> <span id="infoMass"></span></p>
+                    <p><strong>Category:</strong> <span id="infoCategory"></span></p>
+                    <p id="infoDescription"></p>
+                </div>
+            </div>
+
+            <!-- Molecule Builder -->
+            <div id="molecules" class="section">
+                <h2 style="text-align: center; margin-bottom: 20px;">Molecular Bonding Simulator</h2>
+                <div class="molecule-builder">
+                    <div class="molecule-canvas" id="moleculeCanvas">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; opacity: 0.7;">
+                            <p>Click atoms from the palette and place them here</p>
+                            <p>Click between atoms to create bonds</p>
+                        </div>
+                    </div>
+                    <div class="molecule-tools">
+                        <h3>Atom Palette</h3>
+                        <div class="atom-palette">
+                            <button class="atom-tool selected" onclick="selectAtom('H')" style="background-color: #ff6b6b;">H<br>Hydrogen</button>
+                            <button class="atom-tool" onclick="selectAtom('C')" style="background-color: #96ceb4;">C<br>Carbon</button>
+                            <button class="atom-tool" onclick="selectAtom('N')" style="background-color: #feca57;">N<br>Nitrogen</button>
+                            <button class="atom-tool" onclick="selectAtom('O')" style="background-color: #ff9ff3;">O<br>Oxygen</button>
+                            <button class="atom-tool" onclick="selectAtom('F')" style="background-color: #4ecdc4;">F<br>Fluorine</button>
+                            <button class="atom-tool" onclick="selectAtom('Cl')" style="background-color: #45b7d1;">Cl<br>Chlorine</button>
+                        </div>
+                        <div class="control-group">
+                            <h3>Common Molecules</h3>
+                            <button class="particle-btn" onclick="buildMolecule('H2O')" style="width: 100%; margin-bottom: 10px;">H₂O (Water)</button>
+                            <button class="particle-btn" onclick="buildMolecule('CO2')" style="width: 100%; margin-bottom: 10px;">CO₂ (Carbon Dioxide)</button>
+                            <button class="particle-btn" onclick="buildMolecule('CH4')" style="width: 100%; margin-bottom: 10px;">CH₄ (Methane)</button>
+                            <button class="particle-btn" onclick="clearMolecule()" style="width: 100%; background: #ff6b6b;">Clear Canvas</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div id="timeline" class="section">
+                <h2 style="text-align: center; margin-bottom: 30px;">History of Atomic Theory</h2>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-year">460 BC</div>
+                            <h4>Democritus</h4>
+                            <p>First proposed the concept of atoms as indivisible particles that make up all matter.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1803</div>
+                            <h4>John Dalton</h4>
+                            <p>Developed the first modern atomic theory, proposing that elements are made of atoms.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1897</div>
+                            <h4>J.J. Thomson</h4>
+                            <p>Discovered the electron and proposed the "plum pudding" model of the atom.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1911</div>
+                            <h4>Ernest Rutherford</h4>
+                            <p>Discovered the atomic nucleus through his gold foil experiment.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1913</div>
+                            <h4>Niels Bohr</h4>
+                            <p>Proposed the planetary model with electrons in specific energy levels.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1926</div>
+                            <h4>Erwin Schrödinger</h4>
+                            <p>Developed quantum mechanical model describing electrons as probability clouds.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentAtom = { protons: 1, neutrons: 0, electrons: 1 };
+        let selectedAtomType = 'H';
+        let moleculeAtoms = [];
+        let moleculeBonds = [];
+
+        // Element data
+        const elements = {
+            1: { symbol: 'H', name: 'Hydrogen', mass: 1.008, category: 'Nonmetal' },
+            2: { symbol: 'He', name: 'Helium', mass: 4.003, category: 'Noble Gas' },
+            3: { symbol: 'Li', name: 'Lithium', mass: 6.941, category: 'Alkali Metal' },
+            4: { symbol: 'Be', name: 'Beryllium', mass: 9.012, category: 'Alkaline Earth Metal' },
+            5: { symbol: 'B', name: 'Boron', mass: 10.811, category: 'Metalloid' },
+            6: { symbol: 'C', name: 'Carbon', mass: 12.011, category: 'Nonmetal' },
+            7: { symbol: 'N', name: 'Nitrogen', mass: 14.007, category: 'Nonmetal' },
+            8: { symbol: 'O', name: 'Oxygen', mass: 15.999, category: 'Nonmetal' },
+            9: { symbol: 'F', name: 'Fluorine', mass: 18.998, category: 'Halogen' },
+            10: { symbol: 'Ne', name: 'Neon', mass: 20.180, category: 'Noble Gas' }
+        };
+
+        // Tab switching
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Atom Visualizer
+        function setElement(symbol, protons, electrons, neutrons) {
+            const nucleus = document.getElementById('nucleus');
+            const atomDisplay = document.getElementById('atomDisplay');
+            
+            nucleus.textContent = symbol;
+            
+            // Clear existing electrons
+            atomDisplay.querySelectorAll('.electron').forEach(e => e.remove());
+            
+            // Add electrons based on element
+            for (let i = 0; i < electrons; i++) {
+                const electron = document.createElement('div');
+                electron.className = `electron electron-${(i % 3) + 1}`;
+                electron.style.animationDelay = `${i * 0.5}s`;
+                atomDisplay.appendChild(electron);
+            }
+            
+            // Update element info
+            const elementData = elements[protons];
+            if (elementData) {
+                document.getElementById('currentElement').textContent = elementData.name;
+                document.getElementById('elementDescription').textContent = 
+                    `Atomic number: ${protons}, Mass: ${elementData.mass}, Category: ${elementData.category}`;
+            }
+        }
+
+        // Atom Builder
+        function changeParticles(type, change) {
+            if (type === 'protons') {
+                currentAtom.protons = Math.max(1, currentAtom.protons + change);
+            } else if (type === 'neutrons') {
+                currentAtom.neutrons = Math.max(0, currentAtom.neutrons + change);
+            } else if (type === 'electrons') {
+                currentAtom.electrons = Math.max(0, currentAtom.electrons + change);
+            }
+            
+            updateBuilderDisplay();
+        }
+
+        function updateBuilderDisplay() {
+            document.getElementById('protonCount').textContent = currentAtom.protons;
+            document.getElementById('neutronCount').textContent = currentAtom.neutrons;
+            document.getElementById('electronCount').textContent = currentAtom.electrons;
+            
+            const element = elements[currentAtom.protons];
+            const elementName = element ? element.name : 'Unknown';
+            document.getElementById('builtElement').textContent = elementName;
+            
+            const charge = currentAtom.protons - currentAtom.electrons;
+            let chargeText = 'Neutral';
+            if (charge > 0) chargeText = `+${charge} (Cation)`;
+            if (charge < 0) chargeText = `${charge} (Anion)`;
+            document.getElementById('atomCharge').textContent = chargeText;
+            
+            document.getElementById('massNumber').textContent = currentAtom.protons + currentAtom.neutrons;
+            
+            // Update nucleus display
+            const nucleus = document.getElementById('builderNucleus');
+            nucleus.textContent = element ? element.symbol : '?';
+            
+            // Update electrons in builder display
+            const builderDisplay = document.getElementById('builderDisplay');
+            builderDisplay.querySelectorAll('.electron').forEach(e => e.remove());
+            
+            for (let i = 0; i < currentAtom.electrons; i++) {
+                const electron = document.createElement('div');
+                electron.className = `electron electron-${(i % 3) + 1}`;
+                electron.style.animationDelay = `${i * 0.3}s`;
+                builderDisplay.appendChild(electron);
+            }
+        }
+
+        // Periodic Table
+        function createPeriodicTable() {
+            const table = document.getElementById('periodicTable');
+            
+            // Create first 18 elements for demo
+            for (let i = 1; i <= 18; i++) {
+                const element = elements[i];
+                if (element) {
+                    const elementDiv = document.createElement('div');
+                    elementDiv.className = 'element';
+                    elementDiv.innerHTML = `
+                        <div class="element-number">${i}</div>
+                        <div class="element-symbol">${element.symbol}</div>
+                        <div style="font-size: 10px;">${element.mass}</div>
+                    `;
+                    elementDiv.onclick = () => showElementInfo(i);
+                    table.appendChild(elementDiv);
+                } else {
+                    // Empty space for layout
+                    const emptyDiv = document.createElement('div');
+                    table.appendChild(emptyDiv);
+                }
+            }
+        }
+
+        function showElementInfo(atomicNumber) {
+            const element = elements[atomicNumber];
+            if (!element) return;
+            
+            document.getElementById('infoName').textContent = element.name;
+            document.getElementById('infoSymbol').textContent = element.symbol;
+            document.getElementById('infoNumber').textContent = atomicNumber;
+            document.getElementById('infoMass').textContent = element.mass;
+            document.getElementById('infoCategory').textContent = element.category;
+            document.getElementById('infoDescription').textContent = 
+                `${element.name} is a ${element.category.toLowerCase()} with atomic number ${atomicNumber}.`;
+            
+            document.getElementById('elementInfo').classList.add('show');
+        }
+
+        // Molecule Builder
+        function selectAtom(atomType) {
+            selectedAtomType = atomType;
+            document.querySelectorAll('.atom-tool').forEach(tool => {
+                tool.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+
+        function buildMolecule(formula) {
+            clearMolecule();
+            const canvas = document.getElementById('moleculeCanvas');
+            
+            if (formula === 'H2O') {
+                // Water molecule
+                addMoleculeAtom('O', 200, 200);
+                addMoleculeAtom('H', 150, 150);
+                addMoleculeAtom('H', 250, 150);
+            } else if (formula === 'CO2') {
+                // Carbon dioxide
+                addMoleculeAtom('C', 200, 200);
+                addMoleculeAtom('O', 150, 200);
+                addMoleculeAtom('O', 250, 200);
+            } else if (formula === 'CH4') {
+                // Methane
+                addMoleculeAtom('C', 200, 200);
+                addMoleculeAtom('H', 170, 170);
+                addMoleculeAtom('H', 230, 170);
+                addMoleculeAtom('H', 170, 230);
+                addMoleculeAtom('H', 230, 230);
+            }
+        }
+
+        function addMoleculeAtom(type, x, y) {
+            const canvas = document.getElementById('moleculeCanvas');
+            const atom = document.createElement('div');
+            atom.className = 'molecule-atom';
+            atom.textContent = type;
+            atom.style.cssText = `
+                position: absolute;
+                left: ${x - 20}px;
+                top: ${y - 20}px;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                cursor: pointer;
+                background: ${getAtomColor(type)};
+                box-shadow: 0 0 10px rgba(255,255,255,0.3);
+            `;
+            canvas.appendChild(atom);
+            moleculeAtoms.push({ element: type, x, y, atom });
+        }
+
+        function getAtomColor(type) {
+            const colors = {
+                'H': '#ff6b6b',
+                'C': '#96ceb4',
+                'N': '#feca57',
+                'O': '#ff9ff3',
+                'F': '#4ecdc4',
+                'Cl': '#45b7d1'
+            };
+            return colors[type] || '#ffffff';
+        }
+
+        function clearMolecule() {
+            const canvas = document.getElementById('moleculeCanvas');
+            canvas.querySelectorAll('.molecule-atom').forEach(atom => atom.remove());
+            moleculeAtoms = [];
+            moleculeBonds = [];
+        }
+
+        // Add click handler for molecule canvas
+        document.getElementById('moleculeCanvas').addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Only add atom if not clicking on existing atom
+            if (!e.target.classList.contains('molecule-atom')) {
+                addMoleculeAtom(selectedAtomType, x, y);
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            createPeriodicTable();
+            updateBuilderDisplay();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'989c9e233350a9a2',t:'MTc1OTY2NDE0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
